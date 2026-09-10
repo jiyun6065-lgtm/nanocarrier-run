@@ -31,6 +31,27 @@
             cursor: pointer;
         }
 
+        /* 오른쪽 상단 일시정지 버튼 */
+        #pause-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 30;
+            background-color: rgba(255, 255, 255, 0.2);
+            border: 1px solid #38bdf8;
+            color: #ffffff;
+            font-size: 16px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        #pause-btn:hover {
+            background-color: #38bdf8;
+            color: #0f172a;
+        }
+
         #carrier {
             width: 45px;
             height: 45px;
@@ -50,7 +71,6 @@
             100% { bottom: 0px; }
         }
 
-        /* 장애물: 산성 파도 (H+) */
         #obstacle {
             width: 25px;
             height: 35px;
@@ -61,12 +81,11 @@
             border-radius: 4px;
         }
 
-        /* 회복 아이템: 지질 보충제 (Lipid Pack) */
         #item {
             width: 20px;
             height: 20px;
             position: absolute;
-            bottom: 70px; /* 공중에 떠있음 */
+            bottom: 70px;
             right: -30px;
             background-color: #38bdf8;
             border-radius: 50%;
@@ -80,6 +99,11 @@
         @keyframes move-object {
             0% { right: -30px; }
             100% { right: 630px; }
+        }
+
+        /* 애니메이션 일시정지용 클래스 */
+        .paused {
+            animation-play-state: paused !important;
         }
 
         .hud {
@@ -116,6 +140,9 @@
     <h1>NanoCarrier Run</h1>
 
     <div id="game-container">
+        <!-- 일시정지 버튼 -->
+        <button id="pause-btn">⏸️ 일시정지</button>
+
         <!-- 주인공 캐릭터 -->
         <div id="carrier">
             <svg viewBox="0 0 100 100">
@@ -140,7 +167,7 @@
         <div>표적 수용체 거리: <span id="score">0</span> / 300m</div>
     </div>
 
-    <p class="instruction">스페이스바/터치로 장애물을 피하고 파란색 지질 보충제를 획득하세요!</p>
+    <p class="instruction">스페이스바/터치로 점프! (일시정지: 우측 상단 버튼 또는 P키)</p>
 
     <script>
         const carrier = document.getElementById("carrier");
@@ -149,35 +176,76 @@
         const hpDisplay = document.getElementById("hp");
         const scoreDisplay = document.getElementById("score");
         const messageText = document.getElementById("message-text");
+        const pauseBtn = document.getElementById("pause-btn");
 
         let hp = 100;
         let score = 0;
-        const targetDistance = 300; // 목표 수용체 도달 거리 (300m)
+        const targetDistance = 300;
         let isGameOver = false;
+        let isPaused = false;
         let isInvincible = false;
+
+        // 일시정지 토글 기능
+        function togglePause(e) {
+            if (e) e.stopPropagation(); // 점프 이벤트 방지
+            if (isGameOver) return;
+
+            isPaused = !isPaused;
+
+            if (isPaused) {
+                obstacle.classList.add("paused");
+                item.classList.add("paused");
+                carrier.classList.add("paused");
+                pauseBtn.innerText = "▶️ 다시 시작";
+                messageText.innerHTML = "<span style='color:#38bdf8;'>일시정지됨</span>";
+                messageText.style.display = "block";
+            } else {
+                obstacle.classList.remove("paused");
+                item.classList.remove("paused");
+                carrier.classList.remove("paused");
+                pauseBtn.innerText = "⏸️ 일시정지";
+                messageText.style.display = "none";
+            }
+        }
+
+        pauseBtn.addEventListener("click", togglePause);
+        pauseBtn.addEventListener("touchstart", (e) => {
+            e.stopPropagation();
+            togglePause(e);
+        });
 
         function jump() {
             if (isGameOver) {
                 restartGame();
                 return;
             }
+            if (isPaused) return;
+
             if (!carrier.classList.contains("jump")) {
                 carrier.classList.add("jump");
                 setTimeout(() => carrier.classList.remove("jump"), 600);
             }
         }
 
-        document.addEventListener("keydown", (e) => { if (e.code === "Space") jump(); });
-        document.addEventListener("touchstart", () => jump());
-        document.addEventListener("mousedown", () => jump());
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space") jump();
+            if (e.code === "KeyP" || e.code === "Keyp") togglePause();
+        });
+
+        document.addEventListener("touchstart", (e) => {
+            if (e.target !== pauseBtn) jump();
+        });
+
+        document.addEventListener("mousedown", (e) => {
+            if (e.target !== pauseBtn) jump();
+        });
 
         // 점수 및 성공 판정 루프
-        const scoreInterval = setInterval(() => {
-            if (!isGameOver) {
+        setInterval(() => {
+            if (!isGameOver && !isPaused) {
                 score += 1;
                 scoreDisplay.innerText = score;
 
-                // 목표 거리 300m 달성 시 성공 처리
                 if (score >= targetDistance) {
                     gameSuccess();
                 }
@@ -185,8 +253,8 @@
         }, 100);
 
         // 충돌 및 아이템 획득 감지 루프
-        const checkCollision = setInterval(() => {
-            if (isGameOver) return;
+        setInterval(() => {
+            if (isGameOver || isPaused) return;
 
             const carrierRect = carrier.getBoundingClientRect();
             const obstacleRect = obstacle.getBoundingClientRect();
@@ -227,11 +295,10 @@
 
             if (isCollidingItem) {
                 if (hp < 100) {
-                    hp += 20; // 지질막 20% 회복
+                    hp += 20;
                     if (hp > 100) hp = 100;
                     updateHpUI();
                 }
-                // 아이템 순간 숨기기
                 item.style.display = "none";
                 setTimeout(() => { item.style.display = "block"; }, 2000);
             }
@@ -265,11 +332,16 @@
             hp = 100;
             score = 0;
             isGameOver = false;
+            isPaused = false;
+            pauseBtn.innerText = "⏸️ 일시정지";
             updateHpUI();
             scoreDisplay.innerText = "0";
             messageText.style.display = "none";
             obstacle.classList.add("object-move");
             item.classList.add("object-move");
+            obstacle.classList.remove("paused");
+            item.classList.remove("paused");
+            carrier.classList.remove("paused");
         }
     </script>
 </body>
