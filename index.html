@@ -2,51 +2,129 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>NanoCarrier Run</title>
+    <title>NanoCarrier Run - 세포막 DDS 투과 시뮬레이터</title>
     <style>
         body {
-            background-color: #1a1a2e;
+            background-color: #0f172a;
             color: #ffffff;
-            font-family: sans-serif;
+            font-family: 'Arial', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             margin: 0;
+            overflow: hidden;
         }
-        /* 지질막 나노캐리어 캐릭터 (SVG) */
-        .carrier-container {
-            width: 100px;
-            height: 100px;
-            animation: bounce 1s infinite alternate ease-in-out;
+
+        /* 게임 스테이지 */
+        #game-container {
+            width: 600px;
+            height: 200px;
+            border-bottom: 4px solid #38bdf8;
+            position: relative;
+            background-color: #1e293b;
+            overflow: hidden;
+            border-radius: 8px 8px 0 0;
         }
-        @keyframes bounce {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-15px); }
+
+        /* 나노캐리어 (주인공) */
+        #carrier {
+            width: 45px;
+            height: 45px;
+            position: absolute;
+            bottom: 0px;
+            left: 50px;
+        }
+
+        /* 점프 애니메이션 클래스 */
+        .jump {
+            animation: jump-animation 0.6s ease-out;
+        }
+
+        @keyframes jump-animation {
+            0% { bottom: 0px; }
+            50% { bottom: 100px; }
+            100% { bottom: 0px; }
+        }
+
+        /* 장애물 (산성 파도 H+) */
+        #obstacle {
+            width: 25px;
+            height: 35px;
+            position: absolute;
+            bottom: 0px;
+            right: -30px;
+            background-color: #ef4444;
+            border-radius: 4px;
+            animation: move-obstacle 2s infinite linear;
+        }
+
+        @keyframes move-obstacle {
+            0% { right: -30px; }
+            100% { right: 630px; }
+        }
+
+        /* 상태 표시줄 */
+        .hud {
+            width: 600px;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .instruction {
+            margin-top: 10px;
+            color: #94a3b8;
         }
     </style>
 </head>
 <body>
+
     <h1>NanoCarrier Run</h1>
-    <p>세포막 DDS 투과 시뮬레이터 준비 중...</p>
-    
-    <!-- 지질 이중층 나노캐리어 캐릭터 -->
-    <div class="carrier-container">
-        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <!-- 외곽 지질 이중층 (Lipid Bilayer) -->
-            <circle cx="50" cy="50" r="42" fill="none" stroke="#4cc9f0" stroke-width="6" stroke-dasharray="6,3"/>
-            <circle cx="50" cy="50" r="35" fill="none" stroke="#4361ee" stroke-width="4"/>
-            <!-- 내부 유효 성분 (Core Drug) -->
-            <circle cx="50" cy="50" r="22" fill="#7209b7"/>
-            <circle cx="45" cy="45" r="6" fill="#f72585"/>
-            <circle cx="56" cy="52" r="4" fill="#f72585"/>
-            <!-- 통과용 표시 눈망울 -->
-            <circle cx="42" cy="48" r="3" fill="#ffffff"/>
-            <circle cx="58" cy="48" r="3" fill="#ffffff"/>
-        </svg>
+
+    <div id="game-container">
+        <!-- 주인공: 나노캐리어 SVG -->
+        <div id="carrier">
+            <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#38bdf8" stroke-width="8" stroke-dasharray="8,4"/>
+                <circle cx="50" cy="50" r="30" fill="#818cf8"/>
+                <circle cx="50" cy="50" r="18" fill="#c084fc"/>
+                <circle cx="42" cy="45" r="4" fill="#ffffff"/>
+                <circle cx="58" cy="45" r="4" fill="#ffffff"/>
+            </svg>
+        </div>
+
+        <!-- 장애물: 산성 파도(H+) -->
+        <div id="obstacle"></div>
     </div>
 
-    <p><small>통신 상태: 정상 (지질막 내구도 100%)</small></p>
+    <div class="hud">
+        <div>지질막 내구도: <span id="hp" style="color: #4ade80;">100%</span></div>
+        <div>투과 도달 거리: <span id="score">0</span>m</div>
+    </div>
+
+    <p class="instruction">스페이스바(Space)를 눌러 산성 파도를 피하세요!</p>
+
+    <script>
+        const carrier = document.getElementById("carrier");
+
+        // 스페이스바 누르면 점프
+        document.addEventListener("keydown", function(event) {
+            if (event.code === "Space") {
+                jump();
+            }
+        });
+
+        function jump() {
+            if (!carrier.classList.contains("jump")) {
+                carrier.classList.add("jump");
+                setTimeout(function() {
+                    carrier.classList.remove("jump");
+                }, 600); // 점프 애니메이션 시간(0.6초)
+            }
+        }
+    </script>
 </body>
 </html>
