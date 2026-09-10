@@ -37,6 +37,7 @@
             position: absolute;
             bottom: 0px;
             left: 50px;
+            z-index: 10;
         }
 
         .jump {
@@ -49,6 +50,7 @@
             100% { bottom: 0px; }
         }
 
+        /* 장애물: 산성 파도 (H+) */
         #obstacle {
             width: 25px;
             height: 35px;
@@ -59,11 +61,23 @@
             border-radius: 4px;
         }
 
-        .obstacle-move {
-            animation: move-obstacle 2s infinite linear;
+        /* 회복 아이템: 지질 보충제 (Lipid Pack) */
+        #item {
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            bottom: 70px; /* 공중에 떠있음 */
+            right: -30px;
+            background-color: #38bdf8;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #38bdf8;
         }
 
-        @keyframes move-obstacle {
+        .object-move {
+            animation: move-object 2s infinite linear;
+        }
+
+        @keyframes move-object {
             0% { right: -30px; }
             100% { right: 630px; }
         }
@@ -83,16 +97,17 @@
             text-align: center;
         }
 
-        #game-over-text {
+        #message-text {
             display: none;
             position: absolute;
             top: 40%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: #ef4444;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
+            text-align: center;
             text-shadow: 2px 2px 4px #000;
+            z-index: 20;
         }
     </style>
 </head>
@@ -101,6 +116,7 @@
     <h1>NanoCarrier Run</h1>
 
     <div id="game-container">
+        <!-- 주인공 캐릭터 -->
         <div id="carrier">
             <svg viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="42" fill="none" stroke="#38bdf8" stroke-width="8" stroke-dasharray="8,4"/>
@@ -111,30 +127,35 @@
             </svg>
         </div>
 
-        <div id="obstacle" class="obstacle-move"></div>
-        <div id="game-over-text">세포 내 분해 완료 (GAME OVER)<br><span style="font-size:14px; color:#fff;">클릭 시 재시작</span></div>
+        <!-- 장애물 및 아이템 -->
+        <div id="obstacle" class="object-move"></div>
+        <div id="item" class="object-move" style="animation-delay: 1s;"></div>
+
+        <!-- 게임 상태 메세지 -->
+        <div id="message-text"></div>
     </div>
 
     <div class="hud">
         <div>지질막 내구도: <span id="hp" style="color: #4ade80;">100%</span></div>
-        <div>투과 도달 거리: <span id="score">0</span>m</div>
+        <div>표적 수용체 거리: <span id="score">0</span> / 300m</div>
     </div>
 
-    <p class="instruction">스페이스바 또는 화면을 클릭하여 점프하세요!</p>
+    <p class="instruction">스페이스바/터치로 장애물을 피하고 파란색 지질 보충제를 획득하세요!</p>
 
     <script>
         const carrier = document.getElementById("carrier");
         const obstacle = document.getElementById("obstacle");
+        const item = document.getElementById("item");
         const hpDisplay = document.getElementById("hp");
         const scoreDisplay = document.getElementById("score");
-        const gameOverText = document.getElementById("game-over-text");
+        const messageText = document.getElementById("message-text");
 
         let hp = 100;
         let score = 0;
+        const targetDistance = 300; // 목표 수용체 도달 거리 (300m)
         let isGameOver = false;
-        let isInvincible = false; // 연속 피격 방지 무적 플래그
+        let isInvincible = false;
 
-        // 점프 제어
         function jump() {
             if (isGameOver) {
                 restartGame();
@@ -150,40 +171,43 @@
         document.addEventListener("touchstart", () => jump());
         document.addEventListener("mousedown", () => jump());
 
-        // 점수증가 타이머
+        // 점수 및 성공 판정 루프
         const scoreInterval = setInterval(() => {
             if (!isGameOver) {
                 score += 1;
                 scoreDisplay.innerText = score;
+
+                // 목표 거리 300m 달성 시 성공 처리
+                if (score >= targetDistance) {
+                    gameSuccess();
+                }
             }
         }, 100);
 
-        // 충돌 감지 루프 (10ms 마다)
+        // 충돌 및 아이템 획득 감지 루프
         const checkCollision = setInterval(() => {
             if (isGameOver) return;
 
             const carrierRect = carrier.getBoundingClientRect();
             const obstacleRect = obstacle.getBoundingClientRect();
+            const itemRect = item.getBoundingClientRect();
 
-            // 위치 겹침 판정
-            const isColliding = !(
+            // 1. 장애물 충돌 감지
+            const isCollidingObstacle = !(
                 carrierRect.right < obstacleRect.left ||
                 carrierRect.left > obstacleRect.right ||
                 carrierRect.bottom < obstacleRect.top ||
                 carrierRect.top > obstacleRect.bottom
             );
 
-            if (isColliding && !isInvincible) {
-                hp -= 25; // 피격 시 25% 감축
+            if (isCollidingObstacle && !isInvincible) {
+                hp -= 25;
                 if (hp < 0) hp = 0;
-                hpDisplay.innerText = hp + "%";
-
-                if (hp <= 30) hpDisplay.style.color = "#ef4444";
+                updateHpUI();
 
                 if (hp <= 0) {
-                    endGame();
+                    gameFailed();
                 } else {
-                    // 피격 후 0.5초간 쿨타임
                     isInvincible = true;
                     carrier.style.opacity = "0.5";
                     setTimeout(() => {
@@ -192,23 +216,60 @@
                     }, 500);
                 }
             }
+
+            // 2. 지질 아이템 획득 감지
+            const isCollidingItem = !(
+                carrierRect.right < itemRect.left ||
+                carrierRect.left > itemRect.right ||
+                carrierRect.bottom < itemRect.top ||
+                carrierRect.top > itemRect.bottom
+            );
+
+            if (isCollidingItem) {
+                if (hp < 100) {
+                    hp += 20; // 지질막 20% 회복
+                    if (hp > 100) hp = 100;
+                    updateHpUI();
+                }
+                // 아이템 순간 숨기기
+                item.style.display = "none";
+                setTimeout(() => { item.style.display = "block"; }, 2000);
+            }
         }, 10);
 
-        function endGame() {
+        function updateHpUI() {
+            hpDisplay.innerText = hp + "%";
+            hpDisplay.style.color = hp <= 30 ? "#ef4444" : "#4ade80";
+        }
+
+        function gameFailed() {
             isGameOver = true;
-            obstacle.classList.remove("obstacle-move");
-            gameOverText.style.display = "block";
+            stopAnimations();
+            messageText.innerHTML = "<span style='color:#ef4444;'>세포 내 분해 완료 (실패)</span><br><span style='font-size:14px; color:#fff;'>클릭 시 재시작</span>";
+            messageText.style.display = "block";
+        }
+
+        function gameSuccess() {
+            isGameOver = true;
+            stopAnimations();
+            messageText.innerHTML = "<span style='color:#4ade80;'>표적 수용체 도달 성공! (클리어)</span><br><span style='font-size:14px; color:#fff;'>클릭 시 재시작</span>";
+            messageText.style.display = "block";
+        }
+
+        function stopAnimations() {
+            obstacle.classList.remove("object-move");
+            item.classList.remove("object-move");
         }
 
         function restartGame() {
             hp = 100;
             score = 0;
             isGameOver = false;
-            hpDisplay.innerText = "100%";
-            hpDisplay.style.color = "#4ade80";
+            updateHpUI();
             scoreDisplay.innerText = "0";
-            gameOverText.style.display = "none";
-            obstacle.classList.add("obstacle-move");
+            messageText.style.display = "none";
+            obstacle.classList.add("object-move");
+            item.classList.add("object-move");
         }
     </script>
 </body>
