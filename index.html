@@ -15,17 +15,22 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
+            /* 터치 시 화면 드래그나 확대 방지 */
+            touch-action: manipulation;
+            user-select: none;
         }
 
         /* 게임 스테이지 */
         #game-container {
             width: 600px;
+            max-width: 90vw;
             height: 200px;
             border-bottom: 4px solid #38bdf8;
             position: relative;
             background-color: #1e293b;
             overflow: hidden;
             border-radius: 8px 8px 0 0;
+            cursor: pointer; /* 마우스 커서 손가락 모양으로 변경 */
         }
 
         /* 나노캐리어 (주인공) */
@@ -68,6 +73,7 @@
         /* 상태 표시줄 */
         .hud {
             width: 600px;
+            max-width: 90vw;
             display: flex;
             justify-content: space-between;
             margin-top: 15px;
@@ -77,6 +83,7 @@
         .instruction {
             margin-top: 10px;
             color: #94a3b8;
+            text-align: center;
         }
     </style>
 </head>
@@ -105,16 +112,25 @@
         <div>투과 도달 거리: <span id="score">0</span>m</div>
     </div>
 
-    <p class="instruction">스페이스바(Space)를 눌러 산성 파도를 피하세요!</p>
+    <p class="instruction">스페이스바(Space) 또는 화면을 터치/클릭하여 점프하세요!</p>
 
     <script>
         const carrier = document.getElementById("carrier");
 
-        // 스페이스바 누르면 점프
+        // 1. 키보드 스페이스바 입력 시 점프
         document.addEventListener("keydown", function(event) {
             if (event.code === "Space") {
                 jump();
             }
+        });
+
+        // 2. 화면 터치(모바일) 및 마우스 클릭(PC) 시 점프
+        document.addEventListener("touchstart", function(event) {
+            jump();
+        });
+
+        document.addEventListener("mousedown", function(event) {
+            jump();
         });
 
         function jump() {
