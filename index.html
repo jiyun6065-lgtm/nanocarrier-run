@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>NanoCarrier Run - 세포막 DDS 종스크롤 시뮬레이터</title>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #ffffff;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        .screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* 시작 화면 */
+        #start-screen {
+            width: 380px;
+            max-width: 90vw;
+            background-color: #1e293b;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .character-select {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .char-card {
+            background-color: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 80px;
+        }
+
+        .char-card.selected {
+            border-color: #38bdf8;
+            background-color: #1e293b;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+
+        .char-card svg {
+            width: 45px;
+            height: 45px;
+        }
+
+        .start-btn {
+            background-color: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            transition: 0.2s;
+        }
+
+        .start-btn:hover {
+            background-color: #0ea5e9;
+        }
+
+        /* 종스크롤 게임 스테이지 */
+        #game-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #game-container {
+            width: 360px;
+            max-width: 90vw;
+            height: 500px; /* 세로로 긴 프레임 */
+            border: 3px solid #38bdf8;
+            position: relative;
+            background-color: #020617;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+
+        /* 세포막 이중 지질층 배경 흐름 효과 */
+        .membrane-bg {
+            position: absolute;
+            width: 100%;
+            height: 200%;
+            top: -100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(56, 189, 248, 0.05) 0px,
+                rgba(56, 189, 248, 0.05) 20px,
+                transparent 20px,
+                transparent 40px
+            );
+            animation: scroll-bg 2s linear infinite;
+        }
+
+        @keyframes scroll-bg {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(40px); }
+        }
+
+        /* 일시정지 버튼 */
+        #pause-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 30;
+            background-color: rgba(15, 23, 42, 0.8);
+            border: 1px solid #38bdf8;
+            color: #ffffff;
+            font-size: 13px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* 주인공 나노캐리어 */
+        #carrier {
+            width: 45px;
+            height: 45px;
+            position: absolute;
+            bottom: 40px; /* 아래쪽 고정 배치 */
+            left: 157.5px; /* 중앙 시작 (360 - 45) / 2 */
+            transition: left 0.05s ease-out;
+            z-index: 10;
+        }
+
+        /* 장애물 (산성 이온 H+) */
+        .obstacle {
+            width: 30px;
+            height: 30px;
+            position: absolute;
+            background-color: #ef4444;
+            border-radius: 6px;
+            z-index: 8;
+            box-shadow: 0 0 8px #ef4444;
+        }
+
+        /* 회복 아이템 (지질 보충제) */
+        .item {
+            width: 24px;
+            height: 24px;
+            position: absolute;
+            background-color: #38bdf8;
+            border-radius: 50%;
+            z-index: 8;
+            box-shadow: 0 0 10px #38bdf8;
+        }
+
+        .hud {
+            width: 360px;
+            max-width: 90vw;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .instruction {
+            margin-top: 8px;
+            color: #94a3b8;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        #message-text {
+            display: none;
+            position: absolute;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 2px 2px 4px #000;
+            z-index: 20;
+            width: 80%;
+        }
+
+        /* 모바일 터치 영역 안내 */
+        .touch-controls {
+            display: flex;
+            width: 360px;
+            max-width: 90vw;
+            margin-top: 8px;
+            gap: 10px;
+        }
+        .touch-btn {
+            flex: 1;
+            padding: 10px;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            color: #94a3b8;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 시작 화면 -->
+    <div id="start-screen" class="screen">
+        <h2 style="margin-bottom: 5px;">NanoCarrier Run</h2>
+        <p style="color: #94a3b8; font-size: 14px; margin-top: 0;">세포막 종스크롤 DDS 투과 시뮬레이터</p>
+        
+        <h4 style="margin-bottom: 10px;">캐릭터 선택</h4>
+        <div class="character-select">
+            <div class="char-card selected" onclick="selectCharacter('type1', this)">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#38bdf8" stroke-width="8" stroke-dasharray="8,4"/>
+                    <circle cx="50" cy="50" r="30" fill="#818cf8"/>
+                </svg>
+                <div style="font-size:11px; margin-top:4px;">표준형</div>
+            </div>
+            <div class="char-card" onclick="selectCharacter('type2', this)">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#c084fc" stroke-width="8" stroke-dasharray="4,4"/>
+                    <circle cx="50" cy="50" r="30" fill="#f43f5e"/>
+                </svg>
+                <div style="font-size:11px; margin-top:4px;">고밀도형</div>
+            </div>
+            <div class="char-card" onclick="selectCharacter('type3', this)">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#4ade80" stroke-width="8"/>
+                    <circle cx="50" cy="50" r="30" fill="#22c55e"/>
+                </svg>
+                <div style="font-size:11px; margin-top:4px;">표적지향형</div>
+            </div>
+        </div>
+
+        <button class="start-btn" onclick="startGame()">세포 침투 시작</button>
+    </div>
+
+    <!-- 2. 게임 플레이 화면 (종스크롤) -->
+    <div id="game-screen" class="screen">
+        <div id="game-container">
+            <div id="membrane-bg" class="membrane-bg"></div>
+            <button id="pause-btn">⏸️ 일시정지</button>
+
+            <!-- 주인공 나노캐리어 -->
+            <div id="carrier"></div>
+
+            <!-- 메시지 출력 레이어 -->
+            <div id="message-text"></div>
+        </div>
+
+        <div class="hud">
+            <div>내구도: <span id="hp" style="color: #4ade80;">100%</span></div>
+            <div>침투 깊이: <span id="score">0</span> / 300m</div>
+        </div>
+
+        <div class="touch-controls">
+            <div class="touch-btn">◀ 왼쪽 이동 (←)</div>
+            <div class="touch-btn">오른쪽 이동 (→) ▶</div>
+        </div>
+        <p class="instruction">방향키(← →) 또는 화면 좌/우측을 터치해 수용체로 이동하세요!</p>
+    </div>
+
+    <script>
+        const startScreen = document.getElementById("start-screen");
+        const gameScreen = document.getElementById("game-screen");
+        const gameContainer = document.getElementById("game-container");
+        const membraneBg = document.getElementById("membrane-bg");
+        const carrier = document.getElementById("carrier");
+        const hpDisplay = document.getElementById("hp");
+        const scoreDisplay = document.getElementById("score");
+        const messageText = document.getElementById("message-text");
+        const pauseBtn = document.getElementById("pause-btn");
+
+        let selectedType = 'type1';
+        let hp = 100;
+        let score = 0;
+        const targetDistance = 300;
+        let isGameStarted = false;
+        let isGameOver = false;
+        let isPaused = false;
+        let isInvincible = false;
+
+        let carrierX = 157.5; // 캐릭터 현재 X 위치
+        const containerWidth = 360;
+        const carrierWidth = 45;
+        const moveSpeed = 25; // 한번 이동할 때 주어지는 거리
+
+        let obstacles = [];
+        let items = [];
+        let spawnTimer = 0;
+
+        function selectCharacter(type, element) {
+            selectedType = type;
+            document.querySelectorAll('.char-card').forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function getCarrierSVG(type) {
+            if (type === 'type2') {
+                return `<svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#c084fc" stroke-width="8" stroke-dasharray="4,4"/>
+                    <circle cx="50" cy="50" r="30" fill="#f43f5e"/>
+                    <circle cx="42" cy="45" r="4" fill="#ffffff"/><circle cx="58" cy="45" r="4" fill="#ffffff"/>
+                </svg>`;
+            } else if (type === 'type3') {
+                return `<svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#4ade80" stroke-width="8"/>
+                    <circle cx="50" cy="50" r="30" fill="#22c55e"/>
+                    <circle cx="42" cy="45" r="4" fill="#ffffff"/><circle cx="58" cy="45" r="4" fill="#ffffff"/>
+                </svg>`;
+            } else {
+                return `<svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#38bdf8" stroke-width="8" stroke-dasharray="8,4"/>
+                    <circle cx="50" cy="50" r="30" fill="#818cf8"/>
+                    <circle cx="50" cy="50" r="18" fill="#c084fc"/>
+                    <circle cx="42" cy="45" r="4" fill="#ffffff"/><circle cx="58" cy="45" r="4" fill="#ffffff"/>
+                </svg>`;
+            }
+        }
+
+        function startGame() {
+            startScreen.style.display = "none";
+            gameScreen.style.display = "flex";
+            carrier.innerHTML = getCarrierSVG(selectedType);
+            isGameStarted = true;
+            gameLoop();
+        }
+
+        // 좌우 이동 제어
+        function moveLeft() {
+            if (!isGameStarted || isPaused || isGameOver) return;
+            carrierX = Math.max(10, carrierX - moveSpeed);
+            carrier.style.left = carrierX + "px";
+        }
+
+        function moveRight() {
+            if (!isGameStarted || isPaused || isGameOver) return;
+            carrierX = Math.min(containerWidth - carrierWidth - 10, carrierX + moveSpeed);
+            carrier.style.left = carrierX + "px";
+        }
+
+        // 키보드 조작
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "ArrowLeft" || e.code === "KeyA") moveLeft();
+            if (e.code === "ArrowRight" || e.code === "KeyD") moveRight();
+        });
+
+        // 모바일/마우스 클릭 이동 (화면의 왼쪽/오른쪽 반 터치)
+        gameContainer.addEventListener("touchstart", (e) => {
+            if (e.target === pauseBtn) return;
+            const touchX = e.touches[0].clientX - gameContainer.getBoundingClientRect().left;
+            if (touchX < containerWidth / 2) moveLeft();
+            else moveRight();
+        });
+
+        gameContainer.addEventListener("mousedown", (e) => {
+            if (e.target === pauseBtn) return;
+            const clickX = e.clientX - gameContainer.getBoundingClientRect().left;
+            if (clickX < containerWidth / 2) moveLeft();
+            else moveRight();
+        });
+
+        // 일시정지 토글
+        function togglePause(e) {
+            if (e) e.stopPropagation();
+            if (!isGameStarted || isGameOver) return;
+
+            isPaused = !isPaused;
+
+            if (isPaused) {
+                membraneBg.style.animationPlayState = "paused";
+                pauseBtn.innerText = "▶️ 다시 시작";
+                messageText.innerHTML = "<span style='color:#38bdf8;'>일시정지됨</span>";
+                messageText.style.display = "block";
+            } else {
+                membraneBg.style.animationPlayState = "running";
+                pauseBtn.innerText = "⏸️ 일시정지";
+                messageText.style.display = "none";
+            }
+        }
+
+        pauseBtn.addEventListener("click", togglePause);
+
+        // 메인 게임 루프 (60FPS 기반)
+        function gameLoop() {
+            if (isGameStarted && !isGameOver && !isPaused) {
+                // 1. 점수(침투 깊이) 실시간 상승
+                score += 0.2;
+                scoreDisplay.innerText = Math.floor(score);
+
+                if (score >= targetDistance) {
+                    gameSuccess();
+                    return;
+                }
+
+                // 2. 장애물 및 아이템 생성 (위쪽에서 출현)
+                spawnTimer++;
+                if (spawnTimer % 45 === 0) { // 장애물 생성 주기
+                    createObstacle();
+                }
+                if (spawnTimer % 120 === 0) { // 아이템 생성 주기
+                    createItem();
+                }
+
+                // 3. 장애물 이동 및 충돌 감지
+                moveAndCheckObstacles();
+
+                // 4. 아이템 이동 및 획득 감지
+                moveAndCheckItems();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 장애물 생성
+        function createObstacle() {
+            const obs = document.createElement("div");
+            obs.className = "obstacle";
+            const randomX = Math.random() * (containerWidth - 30);
+            obs.style.left = randomX + "px";
+            obs.style.top = "-30px";
+            gameContainer.appendChild(obs);
+            obstacles.push({ element: obs, y: -30, x: randomX });
+        }
+
+        // 아이템 생성
+        function createItem() {
+            const itm = document.createElement("div");
+            itm.className = "item";
+            const randomX = Math.random() * (containerWidth - 24);
+            itm.style.left = randomX + "px";
+            itm.style.top = "-24px";
+            gameContainer.appendChild(itm);
+            items.push({ element: itm, y: -24, x: randomX });
+        }
+
+        // 장애물 다운로드 및 충돌
+        function moveAndCheckObstacles() {
+            const carrierRect = carrier.getBoundingClientRect();
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.y += 4; // 낙하 속도
+                obs.element.style.top = obs.y + "px";
+
+                // 충돌 감지
+                const obsRect = obs.element.getBoundingClientRect();
+                const isColliding = !(
+                    carrierRect.right < obsRect.left ||
+                    carrierRect.left > obsRect.right ||
+                    carrierRect.bottom < obsRect.top ||
+                    carrierRect.top > obsRect.bottom
+                );
+
+                if (isColliding && !isInvincible) {
+                    hp -= 25;
+                    updateHpUI();
+                    obs.element.remove();
+                    obstacles.splice(i, 1);
+
+                    if (hp <= 0) {
+                        gameFailed();
+                    } else {
+                        isInvincible = true;
+                        carrier.style.opacity = "0.5";
+                        setTimeout(() => {
+                            isInvincible = false;
+                            carrier.style.opacity = "1";
+                        }, 500);
+                    }
+                    continue;
+                }
+
+                // 화면 아래로 벗어나면 제거
+                if (obs.y > 500) {
+                    obs.element.remove();
+                    obstacles.splice(i, 1);
+                }
+            }
+        }
+
+        // 아이템 이동 및 획득
+        function moveAndCheckItems() {
+            const carrierRect = carrier.getBoundingClientRect();
+
+            for (let i = items.length - 1; i >= 0; i--) {
+                let itm = items[i];
+                itm.y += 3;
+                itm.element.style.top = itm.y + "px";
+
+                const itmRect = itm.element.getBoundingClientRect();
+                const isColliding = !(
+                    carrierRect.right < itmRect.left ||
+                    carrierRect.left > itmRect.right ||
+                    carrierRect.bottom < itmRect.top ||
+                    carrierRect.top > itmRect.bottom
+                );
+
+                if (isColliding) {
+                    if (hp < 100) {
+                        hp += 20;
+                        if (hp > 100) hp = 100;
+                        updateHpUI();
+                    }
+                    itm.element.remove();
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                if (itm.y > 500) {
+                    itm.element.remove();
+                    items.splice(i, 1);
+                }
+            }
+        }
+
+        function updateHpUI() {
+            hpDisplay.innerText = hp + "%";
+            hpDisplay.style.color = hp <= 30 ? "#ef4444" : "#4ade80";
+        }
+
+        function gameFailed() {
+            isGameOver = true;
+            membraneBg.style.animationPlayState = "paused";
+            messageText.innerHTML = "<span style='color:#ef4444;'>세포 내 분해 완료 (실패)</span><br><span style='font-size:13px; color:#fff; cursor:pointer;'>클릭하여 다시 도전</span>";
+            messageText.style.display = "block";
+            messageText.onclick = restartGame;
+        }
+
+        function gameSuccess() {
+            isGameOver = true;
+            membraneBg.style.animationPlayState = "paused";
+            messageText.innerHTML = "<span style='color:#4ade80;'>표적 수용체 도달 성공!</span><br><span style='font-size:13px; color:#fff; cursor:pointer;'>클릭하여 다시 도전</span>";
+            messageText.style.display = "block";
+            messageText.onclick = restartGame;
+        }
+
+        function restartGame() {
+            // 화면 요소 초기화
+            obstacles.forEach(o => o.element.remove());
+            items.forEach(i => i.element.remove());
+            obstacles = [];
+            items = [];
+
+            hp = 100;
+            score = 0;
+            spawnTimer = 0;
+            carrierX = 157.5;
+            carrier.style.left = carrierX + "px";
+
+            isGameOver = false;
+            isPaused = false;
+            pauseBtn.innerText = "⏸️ 일시정지";
+            membraneBg.style.animationPlayState = "running";
+            updateHpUI();
+            scoreDisplay.innerText = "0";
+            messageText.style.display = "none";
+        }
+    </script>
+</body>
+</html>
