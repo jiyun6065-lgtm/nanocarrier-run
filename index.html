@@ -19,6 +19,76 @@
             user-select: none;
         }
 
+        /* 공통 화면 스타일 */
+        .screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* 시작 화면 */
+        #start-screen {
+            width: 600px;
+            max-width: 90vw;
+            background-color: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .character-select {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .char-card {
+            background-color: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 90px;
+        }
+
+        .char-card.selected {
+            border-color: #38bdf8;
+            background-color: #1e293b;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+
+        .char-card svg {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 5px;
+        }
+
+        .start-btn {
+            background-color: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .start-btn:hover {
+            background-color: #0ea5e9;
+        }
+
+        /* 게임 플레이 화면 (처음엔 숨김) */
+        #game-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
         #game-container {
             width: 600px;
             max-width: 90vw;
@@ -31,8 +101,7 @@
             cursor: pointer;
         }
 
-        /* 오른쪽 상단 일시정지 버튼 */
-        #pause-btn {
+        #pause-indicator {
             position: absolute;
             top: 10px;
             right: 10px;
@@ -40,16 +109,10 @@
             background-color: rgba(255, 255, 255, 0.2);
             border: 1px solid #38bdf8;
             color: #ffffff;
-            font-size: 16px;
+            font-size: 14px;
             padding: 5px 10px;
             border-radius: 4px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-
-        #pause-btn:hover {
-            background-color: #38bdf8;
-            color: #0f172a;
+            pointer-events: none;
         }
 
         #carrier {
@@ -101,7 +164,6 @@
             100% { right: 630px; }
         }
 
-        /* 애니메이션 일시정지용 클래스 */
         .paused {
             animation-play-state: paused !important;
         }
@@ -137,58 +199,133 @@
 </head>
 <body>
 
-    <h1>NanoCarrier Run</h1>
-
-    <div id="game-container">
-        <!-- 일시정지 버튼 -->
-        <button id="pause-btn">⏸️ 일시정지</button>
-
-        <!-- 주인공 캐릭터 -->
-        <div id="carrier">
-            <svg viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#38bdf8" stroke-width="8" stroke-dasharray="8,4"/>
-                <circle cx="50" cy="50" r="30" fill="#818cf8"/>
-                <circle cx="50" cy="50" r="18" fill="#c084fc"/>
-                <circle cx="42" cy="45" r="4" fill="#ffffff"/>
-                <circle cx="58" cy="45" r="4" fill="#ffffff"/>
-            </svg>
+    <!-- 1. 시작 화면 & 캐릭터 선택 섹션 -->
+    <div id="start-screen" class="screen">
+        <h1>NanoCarrier Run</h1>
+        <p style="color: #94a3b8; margin-bottom: 20px;">세포막 DDS 투과 시뮬레이터</p>
+        
+        <h3>캐릭터(나노캐리어)를 선택하세요</h3>
+        <div class="character-select">
+            <!-- 캐릭터 1 -->
+            <div class="char-card selected" onclick="selectCharacter('type1', this)">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#38bdf8" stroke-width="8" stroke-dasharray="8,4"/>
+                    <circle cx="50" cy="50" r="30" fill="#818cf8"/>
+                </svg>
+                <div style="font-size:12px; margin-top:5px;">표준형</div>
+            </div>
+            <!-- 캐릭터 2 -->
+            <div class="char-card" onclick="selectCharacter('type2', this)">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#c084fc" stroke-width="8" stroke-dasharray="4,4"/>
+                    <circle cx="50" cy="50" r="30" fill="#f43f5e"/>
+                </svg>
+                <div style="font-size:12px; margin-top:5px;">고밀도형</div>
+            </div>
+            <!-- 캐릭터 3 -->
+            <div class="char-card" onclick="selectCharacter('type3', this)">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#4ade80" stroke-width="8"/>
+                    <circle cx="50" cy="50" r="30" fill="#22c55e"/>
+                </svg>
+                <div style="font-size:12px; margin-top:5px;">표적지향형</div>
+            </div>
         </div>
 
-        <!-- 장애물 및 아이템 -->
-        <div id="obstacle" class="object-move"></div>
-        <div id="item" class="object-move" style="animation-delay: 1s;"></div>
-
-        <!-- 게임 상태 메세지 -->
-        <div id="message-text"></div>
+        <button class="start-btn" onclick="startGame()">게임 시작</button>
     </div>
 
-    <div class="hud">
-        <div>지질막 내구도: <span id="hp" style="color: #4ade80;">100%</span></div>
-        <div>표적 수용체 거리: <span id="score">0</span> / 300m</div>
-    </div>
+    <!-- 2. 게임 플레이 화면 -->
+    <div id="game-screen" class="screen">
+        <h1>NanoCarrier Run</h1>
 
-    <p class="instruction">스페이스바/터치로 점프! (일시정지: 우측 상단 버튼 또는 P키)</p>
+        <div id="game-container">
+            <div id="pause-indicator">▶️ 진행 중</div>
+
+            <!-- 선택된 외형이 들어갈 캐리어 태그 -->
+            <div id="carrier"></div>
+
+            <div id="obstacle" class="object-move"></div>
+            <div id="item" class="object-move" style="animation-delay: 1s;"></div>
+
+            <div id="message-text"></div>
+        </div>
+
+        <div class="hud">
+            <div>지질막 내구도: <span id="hp" style="color: #4ade80;">100%</span></div>
+            <div>표적 수용체 거리: <span id="score">0</span> / 300m</div>
+        </div>
+
+        <p class="instruction">화면 클릭 = 일시정지/진행 토글 | 점프는 스페이스바 또는 키보드 조작</p>
+    </div>
 
     <script>
+        const startScreen = document.getElementById("start-screen");
+        const gameScreen = document.getElementById("game-screen");
         const carrier = document.getElementById("carrier");
         const obstacle = document.getElementById("obstacle");
         const item = document.getElementById("item");
         const hpDisplay = document.getElementById("hp");
         const scoreDisplay = document.getElementById("score");
         const messageText = document.getElementById("message-text");
-        const pauseBtn = document.getElementById("pause-btn");
+        const pauseIndicator = document.getElementById("pause-indicator");
 
+        let selectedType = 'type1'; // 기본 선택 캐릭터
         let hp = 100;
         let score = 0;
         const targetDistance = 300;
+        let isGameStarted = false;
         let isGameOver = false;
         let isPaused = false;
         let isInvincible = false;
 
-        // 일시정지 토글 기능
-        function togglePause(e) {
-            if (e) e.stopPropagation(); // 점프 이벤트 방지
-            if (isGameOver) return;
+        // 캐릭터 선택 함수
+        function selectCharacter(type, element) {
+            selectedType = type;
+            // 모든 카드에서 selected 클래스 제거 후 클릭한 카드에 추가
+            document.querySelectorAll('.char-card').forEach(card => card.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        // 캐릭터 SVG 디자인 템플릿 반환
+        function getCarrierSVG(type) {
+            if (type === 'type2') {
+                return `<svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#c084fc" stroke-width="8" stroke-dasharray="4,4"/>
+                    <circle cx="50" cy="50" r="30" fill="#f43f5e"/>
+                    <circle cx="42" cy="45" r="4" fill="#ffffff"/><circle cx="58" cy="45" r="4" fill="#ffffff"/>
+                </svg>`;
+            } else if (type === 'type3') {
+                return `<svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#4ade80" stroke-width="8"/>
+                    <circle cx="50" cy="50" r="30" fill="#22c55e"/>
+                    <circle cx="42" cy="45" r="4" fill="#ffffff"/><circle cx="58" cy="45" r="4" fill="#ffffff"/>
+                </svg>`;
+            } else {
+                return `<svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#38bdf8" stroke-width="8" stroke-dasharray="8,4"/>
+                    <circle cx="50" cy="50" r="30" fill="#818cf8"/>
+                    <circle cx="50" cy="50" r="18" fill="#c084fc"/>
+                    <circle cx="42" cy="45" r="4" fill="#ffffff"/><circle cx="58" cy="45" r="4" fill="#ffffff"/>
+                </svg>`;
+            }
+        }
+
+        // 게임 시작 버튼 클릭 시
+        function startGame() {
+            startScreen.style.display = "none";
+            gameScreen.style.display = "flex";
+            carrier.innerHTML = getCarrierSVG(selectedType);
+            isGameStarted = true;
+        }
+
+        // 일시정지 토글 함수
+        function togglePause() {
+            if (!isGameStarted) return;
+            if (isGameOver) {
+                restartGame();
+                return;
+            }
 
             isPaused = !isPaused;
 
@@ -196,53 +333,33 @@
                 obstacle.classList.add("paused");
                 item.classList.add("paused");
                 carrier.classList.add("paused");
-                pauseBtn.innerText = "▶️ 다시 시작";
-                messageText.innerHTML = "<span style='color:#38bdf8;'>일시정지됨</span>";
+                pauseIndicator.innerText = "⏸️ 일시정지됨";
+                messageText.innerHTML = "<span style='color:#38bdf8;'>일시정지 (화면을 누르면 다시 시작)</span>";
                 messageText.style.display = "block";
             } else {
                 obstacle.classList.remove("paused");
                 item.classList.remove("paused");
                 carrier.classList.remove("paused");
-                pauseBtn.innerText = "⏸️ 일시정지";
+                pauseIndicator.innerText = "▶️ 진행 중";
                 messageText.style.display = "none";
             }
         }
 
-        pauseBtn.addEventListener("click", togglePause);
-        pauseBtn.addEventListener("touchstart", (e) => {
-            e.stopPropagation();
-            togglePause(e);
+        document.addEventListener("click", () => {
+            if (isGameStarted) togglePause();
         });
-
-        function jump() {
-            if (isGameOver) {
-                restartGame();
-                return;
-            }
-            if (isPaused) return;
-
-            if (!carrier.classList.contains("jump")) {
-                carrier.classList.add("jump");
-                setTimeout(() => carrier.classList.remove("jump"), 600);
-            }
-        }
 
         document.addEventListener("keydown", (e) => {
-            if (e.code === "Space") jump();
-            if (e.code === "KeyP" || e.code === "Keyp") togglePause();
-        });
-
-        document.addEventListener("touchstart", (e) => {
-            if (e.target !== pauseBtn) jump();
-        });
-
-        document.addEventListener("mousedown", (e) => {
-            if (e.target !== pauseBtn) jump();
+            if (!isGameStarted) return;
+            if (e.code === "Space" || e.code === "KeyP") {
+                e.preventDefault();
+                togglePause();
+            }
         });
 
         // 점수 및 성공 판정 루프
         setInterval(() => {
-            if (!isGameOver && !isPaused) {
+            if (isGameStarted && !isGameOver && !isPaused) {
                 score += 1;
                 scoreDisplay.innerText = score;
 
@@ -252,15 +369,15 @@
             }
         }, 100);
 
-        // 충돌 및 아이템 획득 감지 루프
+        // 충돌 및 아이템 감지 루프
         setInterval(() => {
-            if (isGameOver || isPaused) return;
+            if (!isGameStarted || isGameOver || isPaused) return;
 
             const carrierRect = carrier.getBoundingClientRect();
             const obstacleRect = obstacle.getBoundingClientRect();
             const itemRect = item.getBoundingClientRect();
 
-            // 1. 장애물 충돌 감지
+            // 장애물 충돌
             const isCollidingObstacle = !(
                 carrierRect.right < obstacleRect.left ||
                 carrierRect.left > obstacleRect.right ||
@@ -285,7 +402,7 @@
                 }
             }
 
-            // 2. 지질 아이템 획득 감지
+            // 아이템 획득
             const isCollidingItem = !(
                 carrierRect.right < itemRect.left ||
                 carrierRect.left > itemRect.right ||
@@ -333,7 +450,7 @@
             score = 0;
             isGameOver = false;
             isPaused = false;
-            pauseBtn.innerText = "⏸️ 일시정지";
+            pauseIndicator.innerText = "▶️ 진행 중";
             updateHpUI();
             scoreDisplay.innerText = "0";
             messageText.style.display = "none";
