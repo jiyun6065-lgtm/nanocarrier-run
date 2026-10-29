@@ -1,236 +1,707 @@
+요청하신 수정 사항(엔딩 연출 중 무반응 처리, 표적 수용체 도달 결합 연출 후 시작 화면 자동 복귀)이 모두 적용된 전체 index.html 코드입니다. 복사하여 그대로 사용하시면 됩니다.
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>NanoCarrier 3D: 세포막 미로 추격전</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NanoCarrier Run - 세포막 DDS 투과 시뮬레이터</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #0f172a; font-family: sans-serif; color: white; }
-        #crosshair {
-            position: absolute; top: 50%; left: 50%; width: 10px; height: 10px;
-            margin-top: -5px; margin-left: -5px; border-radius: 50%; background: rgba(255, 255, 255, 0.5);
-            pointer-events: none;
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+KR:wght@400;700&display=swap');
+
+        :root {
+            --bg-dark: #030816;
+            --panel-bg: rgba(10, 20, 42, 0.75);
+            --primary-cyan: #00f0ff;
+            --secondary-blue: #0066ff;
+            --accent-gold: #ff9d00;
+            --accent-red: #ff3366;
+            --glow-cyan: 0 0 15px rgba(0, 240, 255, 0.6);
+            --glow-gold: 0 0 20px rgba(255, 157, 0, 0.8);
         }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: radial-gradient(circle at 50% 30%, #0a192f 0%, var(--bg-dark) 80%);
+            color: #ffffff;
+            font-family: 'Noto Sans KR', 'Orbitron', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            color: var(--primary-cyan);
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.8), 0 0 20px rgba(0, 102, 255, 0.5);
+        }
+
+        #game-container {
+            width: 650px;
+            max-width: 95vw;
+            height: 220px;
+            border-bottom: 3px solid var(--primary-cyan);
+            box-shadow: 0 10px 30px rgba(0, 240, 255, 0.2), inset 0 -10px 20px rgba(0, 240, 255, 0.1);
+            position: relative;
+            background: linear-gradient(180deg, rgba(6, 15, 33, 0.9) 0%, rgba(3, 8, 22, 0.95) 100%);
+            overflow: hidden;
+            border-radius: 12px 12px 0 0;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+        }
+
+        #game-container::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle, rgba(0, 240, 255, 0.1) 1px, transparent 1px),
+                radial-gradient(circle, rgba(255, 157, 0, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px, 40px 40px;
+            background-position: 0 0, 20px 20px;
+            opacity: 0.6;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        #pause-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 30;
+            background: rgba(3, 8, 22, 0.8);
+            border: 1px solid var(--primary-cyan);
+            color: var(--primary-cyan);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 13px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--glow-cyan);
+        }
+
+        #pause-btn:hover {
+            background: var(--primary-cyan);
+            color: var(--bg-dark);
+            box-shadow: 0 0 20px var(--primary-cyan);
+        }
+
+        #carrier {
+            width: 50px;
+            height: 50px;
+            position: absolute;
+            bottom: 0px;
+            left: 50px;
+            z-index: 10;
+            filter: drop-shadow(0 0 8px var(--primary-cyan));
+            transition: left 1s cubic-bezier(0.25, 1, 0.5, 1), bottom 1s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .jump {
+            animation: jump-animation 0.65s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        @keyframes jump-animation {
+            0% { bottom: 0px; transform: scale(1, 0.9); }
+            40% { bottom: 120px; transform: scale(0.9, 1.1); }
+            100% { bottom: 0px; transform: scale(1, 1); }
+        }
+
+        #obstacle {
+            width: 28px;
+            height: 38px;
+            position: absolute;
+            bottom: 0px;
+            right: -40px;
+            background: radial-gradient(circle, #ff5577 0%, var(--accent-red) 70%);
+            border-radius: 6px;
+            box-shadow: 0 0 15px var(--accent-red), inset 0 0 8px #ffffff;
+            z-index: 9;
+        }
+
+        #item {
+            width: 22px;
+            height: 22px;
+            position: absolute;
+            bottom: 85px;
+            right: -40px;
+            background: radial-gradient(circle, #fff 10%, var(--accent-gold) 60%);
+            border-radius: 50%;
+            box-shadow: var(--glow-gold);
+            z-index: 9;
+        }
+
+        #target-receptor {
+            position: absolute;
+            bottom: 0px;
+            right: -120px;
+            width: 100px;
+            height: 120px;
+            z-index: 8;
+            transition: right 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+            filter: drop-shadow(0 0 15px var(--accent-gold));
+        }
+
+        #target-receptor.appear {
+            right: 80px;
+        }
+
+        .object-move {
+            animation: move-object 2s infinite linear;
+        }
+
+        @keyframes move-object {
+            0% { right: -40px; }
+            100% { right: 670px; }
+        }
+
+        .paused {
+            animation-play-state: paused !important;
+        }
+
         .hud {
-            position: absolute; top: 20px; left: 20px; font-size: 18px; font-weight: bold;
-            background: rgba(15, 23, 42, 0.7); padding: 15px; border-radius: 8px; border: 1px solid #38bdf8;
+            width: 650px;
+            max-width: 95vw;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-size: 15px;
+            font-weight: bold;
+            background: var(--panel-bg);
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
         }
-        #instructions {
-            position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            cursor: pointer; z-index: 10;
+
+        .hud div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+
+        .instruction {
+            margin-top: 12px;
+            color: #64748b;
+            font-size: 13px;
+            text-align: center;
+        }
+
         #message-text {
-            position: absolute; top: 40%; width: 100%; text-align: center;
-            font-size: 32px; font-weight: bold; display: none; text-shadow: 0 0 10px #000;
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            z-index: 20;
+            background: rgba(3, 8, 22, 0.9);
+            padding: 20px 30px;
+            border-radius: 12px;
+            border: 1px solid var(--primary-cyan);
+            box-shadow: var(--glow-cyan);
+            backdrop-filter: blur(5px);
+        }
+
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(3, 8, 22, 0.95);
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        #start-screen h2 {
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+
+        .character-select {
+            display: flex;
+            gap: 15px;
+        }
+
+        .char-card {
+            width: 110px;
+            padding: 10px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .char-card:hover, .char-card.selected {
+            border-color: var(--accent-gold);
+            box-shadow: var(--glow-gold);
+            transform: translateY(-4px);
+            background: rgba(255, 157, 0, 0.1);
+        }
+
+        .char-card svg {
+            width: 45px;
+            height: 45px;
+            margin-bottom: 5px;
+        }
+
+        .char-card .name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .char-card .desc {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        #start-btn {
+            background: linear-gradient(135deg, var(--accent-gold), #ff5500);
+            border: none;
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 10px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: var(--glow-gold);
+            transition: all 0.2s ease;
+        }
+
+        #start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(255, 157, 0, 1);
+        }
+
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 15;
         }
     </style>
-    <!-- Three.js 라이브러리 불러오기 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <div id="crosshair"></div>
+    <h1>NanoCarrier Run</h1>
+
+    <div id="game-container">
+        <canvas id="particle-canvas"></canvas>
+        <button id="pause-btn">⏸ PAUSE</button>
+
+        <!-- 시작 화면 -->
+        <div id="start-screen">
+            <h2>SELECT NANOCARRIER</h2>
+            <div class="character-select">
+                <div class="char-card selected" onclick="selectCharacter(0)">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#00f0ff" stroke-width="6" stroke-dasharray="10,5"/>
+                        <circle cx="50" cy="50" r="28" fill="#0066ff" opacity="0.8"/>
+                        <circle cx="50" cy="50" r="16" fill="#ff9d00"/>
+                    </svg>
+                    <div class="name">표준형 (LNP)</div>
+                    <div class="desc">균형 잡힌 표준 제형</div>
+                </div>
+                <div class="char-card" onclick="selectCharacter(1)">
+                    <svg viewBox="0 0 100 100">
+                        <polygon points="50,10 90,30 90,70 50,90 10,70 10,30" fill="none" stroke="#00f0ff" stroke-width="5"/>
+                        <circle cx="50" cy="50" r="22" fill="#00f0ff" opacity="0.6"/>
+                        <circle cx="50" cy="50" r="10" fill="#fff"/>
+                    </svg>
+                    <div class="name">고밀도형</div>
+                    <div class="desc">강력한 이중막 구조</div>
+                </div>
+                <div class="char-card" onclick="selectCharacter(2)">
+                    <svg viewBox="0 0 100 100">
+                        <path d="M 30,20 L 50,45 L 70,20 M 50,45 L 50,80" fill="none" stroke="#ff9d00" stroke-width="8" stroke-linecap="round"/>
+                        <circle cx="30" cy="20" r="8" fill="#00f0ff"/>
+                        <circle cx="70" cy="20" r="8" fill="#00f0ff"/>
+                    </svg>
+                    <div class="name">표적지향형</div>
+                    <div class="desc">항체 결합 리간드 특화</div>
+                </div>
+            </div>
+            <button id="start-btn" onclick="startGame()">MISSION START</button>
+        </div>
+
+        <!-- 주인공 캐릭터 -->
+        <div id="carrier"></div>
+
+        <!-- 표적 수용체 -->
+        <div id="target-receptor">
+            <svg viewBox="0 0 100 120">
+                <path d="M 20,120 L 20,60 C 20,40 35,30 50,30 C 65,30 80,40 80,60 L 80,120" fill="none" stroke="#ff9d00" stroke-width="8" stroke-linecap="round"/>
+                <path d="M 50,30 L 50,0" fill="none" stroke="#00f0ff" stroke-width="6" stroke-dasharray="4,4"/>
+                <circle cx="50" cy="45" r="18" fill="rgba(255, 157, 0, 0.3)" stroke="#ff9d00" stroke-width="3"/>
+                <path d="M 35,45 Q 50,60 65,45" fill="none" stroke="#00f0ff" stroke-width="4"/>
+            </svg>
+        </div>
+
+        <!-- 장애물 및 아이템 -->
+        <div id="obstacle"></div>
+        <div id="item"></div>
+
+        <!-- 게임 상태 메세지 -->
+        <div id="message-text"></div>
+    </div>
+
     <div class="hud">
-        <div>지질막 내구도: <span id="hp" style="color: #4ade80;">100%</span></div>
-        <div>목표: 세포 내 분해 효소를 피해 <span style="color:#f59e0b;">표적 수용체</span> 찾기!</div>
+        <div>지질막 내구도: <span id="hp" style="color: #00f0ff;">100%</span></div>
+        <div>표적 수용체 거리: <span id="score" style="color: #ff9d00;">0</span> / 300m</div>
     </div>
 
-    <div id="instructions">
-        <h1>NanoCarrier 3D: 세포막 미로 탈출</h1>
-        <p>화면을 클릭하면 시점이 조작됩니다.</p>
-        <p>이동: W, A, S, D | 시점: 마우스 이동</p>
-    </div>
+    <p class="instruction">스페이스바 / 터치 : 점프 | P : 일시정지</p>
 
-    <div id="message-text"></div>
+    <script>
+        const carrier = document.getElementById("carrier");
+        const obstacle = document.getElementById("obstacle");
+        const item = document.getElementById("item");
+        const targetReceptor = document.getElementById("target-receptor");
+        const hpDisplay = document.getElementById("hp");
+        const scoreDisplay = document.getElementById("score");
+        const messageText = document.getElementById("message-text");
+        const pauseBtn = document.getElementById("pause-btn");
+        const startScreen = document.getElementById("start-screen");
+        const canvas = document.getElementById("particle-canvas");
+        const ctx = canvas.getContext("2d");
 
-<script>
-    // 1. 기본 씬, 카메라, 렌더러 설정
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x0f172a, 0.08); // 세포 내 어두운 분위기 연출
+        let hp = 100;
+        let score = 0;
+        const targetDistance = 300;
+        let isGameOver = false;
+        let isPaused = false;
+        let isInvincible = false;
+        let gameStarted = false;
+        let selectedCharIndex = 0;
+        let isEnding = false;
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+        let particles = [];
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
 
-    // 조명 설정
-    const light = new THREE.PointLight(0x38bdf8, 1, 20);
-    camera.add(light);
-    scene.add(camera);
-
-    const ambientLight = new THREE.AmbientLight(0x3d4d75);
-    scene.add(ambientLight);
-
-    // 2. 미로 데이터 (1: 벽, 0: 이동 가능 공간, 2: 시작점, 3: 표적 수용체, 4: 아이템)
-    const mazeMap = [
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1, 2, 0, 1, 0, 0, 0, 4, 0, 1],
-        [1, 1, 0, 1, 0, 1, 1, 1, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-        [1, 0, 1, 1, 1, 1, 0, 1, 0, 1],
-        [1, 0, 0, 4, 0, 1, 0, 0, 0, 1],
-        [1, 1, 1, 1, 0, 1, 1, 1, 0, 1],
-        [1, 0, 0, 0, 0, 0, 0, 1, 0, 1],
-        [1, 4, 1, 1, 1, 1, 0, 0, 3, 1],
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    ];
-
-    const wallSize = 4;
-    const walls = [];
-    const items = [];
-    let targetReceptor = null;
-
-    // 미로 생성
-    const wallGeo = new THREE.BoxGeometry(wallSize, wallSize, wallSize);
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
-
-    for (let r = 0; r < mazeMap.length; r++) {
-        for (let c = 0; c < mazeMap[r].length; c++) {
-            const val = mazeMap[r][c];
-            const x = c * wallSize;
-            const z = r * wallSize;
-
-            if (val === 1) {
-                const wall = new THREE.Mesh(wallGeo, wallMat);
-                wall.position.set(x, wallSize / 2, z);
-                scene.add(wall);
-                walls.push(wall);
-            } else if (val === 2) {
-                camera.position.set(x, 1.6, z); // 플레이어 시작 위치
-            } else if (val === 3) {
-                // 표적 수용체 생성 (보물)
-                const recGeo = new THREE.TorusGeometry(1, 0.3, 16, 100);
-                const recMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xd97706 });
-                targetReceptor = new THREE.Mesh(recGeo, recMat);
-                targetReceptor.position.set(x, 1.5, z);
-                scene.add(targetReceptor);
-            } else if (val === 4) {
-                // 지질 보충 아이템 생성
-                const itemGeo = new THREE.SphereGeometry(0.5, 16, 16);
-                const itemMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7 });
-                const item = new THREE.Mesh(itemGeo, itemMat);
-                item.position.set(x, 1, z);
-                scene.add(item);
-                items.push(item);
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = Math.random() * 3.5 + 1;
+                this.speedX = (Math.random() - 0.5) * 8;
+                this.speedY = (Math.random() - 0.5) * 8;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.03 + 0.015;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life -= this.decay;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
             }
         }
-    }
 
-    // 3. 추격자 (세포 내 분해 효소 / 리소좀) 생성
-    const enemyGeo = new THREE.SphereGeometry(1.2, 32, 32);
-    const enemyMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0x991b1b });
-    const enemy = new THREE.Mesh(enemyGeo, enemyMat);
-    enemy.position.set(8 * wallSize, 1.2, 1 * wallSize); // 적 초기 위치
-    scene.add(enemy);
-
-    // 4. 플레이어 조작 관련 로직
-    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-    let hp = 100;
-    let isGameOver = false;
-
-    const instructions = document.getElementById('instructions');
-    instructions.addEventListener('click', () => {
-        document.body.requestPointerLock();
-    });
-
-    document.addEventListener('pointerlockchange', () => {
-        if (document.pointerLockElement === document.body) {
-            instructions.style.display = 'none';
-        } else if (!isGameOver) {
-            instructions.style.display = 'flex';
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.code === 'KeyW' || e.code === 'ArrowUp') moveForward = true;
-        if (e.code === 'KeyS' || e.code === 'ArrowDown') moveBackward = true;
-        if (e.code === 'KeyA' || e.code === 'ArrowLeft') moveLeft = true;
-        if (e.code === 'KeyD' || e.code === 'ArrowRight') moveRight = true;
-    });
-
-    document.addEventListener('keyup', (e) => {
-        if (e.code === 'KeyW' || e.code === 'ArrowUp') moveForward = false;
-        if (e.code === 'KeyS' || e.code === 'ArrowDown') moveBackward = false;
-        if (e.code === 'KeyA' || e.code === 'ArrowLeft') moveLeft = false;
-        if (e.code === 'KeyD' || e.code === 'ArrowRight') moveRight = false;
-    });
-
-    document.addEventListener('mousemove', (e) => {
-        if (document.pointerLockElement === document.body && !isGameOver) {
-            camera.rotation.y -= e.movementX * 0.002;
-        }
-    });
-
-    // 5. 게임 루프 및 충돌 판정
-    const speed = 0.1;
-    const enemySpeed = 0.035;
-
-    function animate() {
-        requestAnimationFrame(animate);
-        if (isGameOver) return;
-
-        // 플레이어 이동 로직
-        const dir = new THREE.Vector3();
-        if (moveForward) dir.z -= 1;
-        if (moveBackward) dir.z += 1;
-        if (moveLeft) dir.x -= 1;
-        if (moveRight) dir.x += 1;
-        dir.normalize();
-        dir.applyAxisAngle(new THREE.Vector3(0, 1, 0), camera.rotation.y);
-
-        camera.position.addScaledVector(dir, speed);
-
-        // 추격자 AI (플레이어를 향해 다가옴)
-        const enemyDir = new THREE.Vector3().subVectors(camera.position, enemy.position);
-        enemyDir.y = 0; // 평면 이동
-        enemyDir.normalize();
-        enemy.position.addScaledVector(enemyDir, enemySpeed);
-
-        // 회전 애니메이션
-        if (targetReceptor) targetReceptor.rotation.y += 0.02;
-        items.forEach(item => item.rotation.y += 0.03);
-
-        // 1) 추격자 충돌 감지
-        if (camera.position.distanceTo(enemy.position) < 1.8) {
-            hp -= 1; // 연속 피격
-            document.getElementById('hp').innerText = Math.max(0, hp) + '%';
-            if (hp <= 0) gameFailed();
-        }
-
-        // 2) 아이템 획득 감지
-        items.forEach((item, index) => {
-            if (item.visible && camera.position.distanceTo(item.position) < 1.5) {
-                item.visible = false;
-                hp = Math.min(100, hp + 25);
-                document.getElementById('hp').innerText = hp + '%';
+        function createSparks(x, y, color, count = 15) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y, color));
             }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw();
+                if (particles[i].life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        const charSVGs = [
+            `<svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#00f0ff" stroke-width="6" stroke-dasharray="8,4"/>
+                <circle cx="50" cy="50" r="30" fill="#0066ff" opacity="0.8"/>
+                <circle cx="50" cy="50" r="16" fill="#ff9d00"/>
+                <circle cx="42" cy="45" r="4" fill="#ffffff"/>
+                <circle cx="58" cy="45" r="4" fill="#ffffff"/>
+            </svg>`,
+            `<svg viewBox="0 0 100 100">
+                <polygon points="50,5 95,27 95,73 50,95 5,73 5,27" fill="none" stroke="#00f0ff" stroke-width="6"/>
+                <circle cx="50" cy="50" r="24" fill="#00f0ff" opacity="0.6"/>
+                <circle cx="50" cy="50" r="12" fill="#fff"/>
+            </svg>`,
+            `<svg viewBox="0 0 100 100">
+                <path d="M 25,15 L 50,45 L 75,15 M 50,45 L 50,85" fill="none" stroke="#ff9d00" stroke-width="10" stroke-linecap="round"/>
+                <circle cx="25" cy="15" r="10" fill="#00f0ff"/>
+                <circle cx="75" cy="15" r="10" fill="#00f0ff"/>
+                <circle cx="50" cy="65" r="14" fill="#0066ff"/>
+            </svg>`
+        ];
+
+        function selectCharacter(index) {
+            selectedCharIndex = index;
+            document.querySelectorAll(".char-card").forEach((card, idx) => {
+                card.classList.toggle("selected", idx === index);
+            });
+        }
+
+        function startGame() {
+            carrier.innerHTML = charSVGs[selectedCharIndex];
+            startScreen.style.display = "none";
+            gameStarted = true;
+            restartGame();
+        }
+
+        function togglePause(e) {
+            if (e) e.stopPropagation();
+            if (isGameOver || !gameStarted || isEnding) return;
+
+            isPaused = !isPaused;
+
+            if (isPaused) {
+                obstacle.classList.add("paused");
+                item.classList.add("paused");
+                carrier.classList.add("paused");
+                pauseBtn.innerText = "▶ RESUME";
+                messageText.innerHTML = "<span style='color:#00f0ff;'>PAUSED</span>";
+                messageText.style.display = "block";
+            } else {
+                obstacle.classList.remove("paused");
+                item.classList.remove("paused");
+                carrier.classList.remove("paused");
+                pauseBtn.innerText = "⏸ PAUSE";
+                messageText.style.display = "none";
+            }
+        }
+
+        pauseBtn.addEventListener("click", togglePause);
+        pauseBtn.addEventListener("touchstart", (e) => {
+            e.stopPropagation();
+            togglePause(e);
         });
 
-        // 3) 표적 수용체(보물) 도착 성공 감지
-        if (targetReceptor && camera.position.distanceTo(targetReceptor.position) < 2.0) {
-            gameSuccess();
+        function jump() {
+            if (!gameStarted || isEnding) return;
+            if (isGameOver) {
+                restartGame();
+                return;
+            }
+            if (isPaused) return;
+
+            if (!carrier.classList.contains("jump")) {
+                carrier.classList.add("jump");
+                const rect = carrier.getBoundingClientRect();
+                const containerRect = document.getElementById("game-container").getBoundingClientRect();
+                createSparks(rect.left - containerRect.left + 25, rect.bottom - containerRect.top, "#00f0ff", 8);
+                setTimeout(() => carrier.classList.remove("jump"), 650);
+            }
         }
 
-        renderer.render(scene, camera);
-    }
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space") jump();
+            if (e.code === "KeyP" || e.code === "Keyp") togglePause();
+        });
 
-    function gameFailed() {
-        isGameOver = true;
-        document.exitPointerLock();
-        const msg = document.getElementById('message-text');
-        msg.innerHTML = "<span style='color:#ef4444;'>분해 효소에 의해 해체되었습니다 (실패)</span>";
-        msg.style.display = 'block';
-    }
+        document.addEventListener("touchstart", (e) => {
+            if (e.target !== pauseBtn && !startScreen.contains(e.target)) jump();
+        });
 
-    function gameSuccess() {
-        isGameOver = true;
-        document.exitPointerLock();
-        const msg = document.getElementById('message-text');
-        msg.innerHTML = "<span style='color:#4ade80;'>표적 수용체 결합 성공! (클리어)</span>";
-        msg.style.display = 'block';
-    }
+        document.addEventListener("mousedown", (e) => {
+            if (e.target !== pauseBtn && !startScreen.contains(e.target)) jump();
+        });
 
-    animate();
-</script>
+        setInterval(() => {
+            if (gameStarted && !isGameOver && !isPaused && !isEnding) {
+                score += 1;
+                scoreDisplay.innerText = score;
+
+                if (score >= targetDistance) {
+                    gameSuccess();
+                }
+            }
+        }, 100);
+
+        setInterval(() => {
+            if (!gameStarted || isGameOver || isPaused || isEnding) return;
+
+            const carrierRect = carrier.getBoundingClientRect();
+            const obstacleRect = obstacle.getBoundingClientRect();
+            const itemRect = item.getBoundingClientRect();
+            const containerRect = document.getElementById("game-container").getBoundingClientRect();
+
+            const isCollidingObstacle = !(
+                carrierRect.right < obstacleRect.left ||
+                carrierRect.left > obstacleRect.right ||
+                carrierRect.bottom < obstacleRect.top ||
+                carrierRect.top > obstacleRect.bottom
+            );
+
+            if (isCollidingObstacle && !isInvincible) {
+                hp -= 25;
+                if (hp < 0) hp = 0;
+                updateHpUI();
+
+                createSparks(
+                    obstacleRect.left - containerRect.left + 14,
+                    obstacleRect.top - containerRect.top + 19,
+                    "#ff3366", 20
+                );
+
+                if (hp <= 0) {
+                    gameFailed();
+                } else {
+                    isInvincible = true;
+                    carrier.style.opacity = "0.4";
+                    setTimeout(() => {
+                        isInvincible = false;
+                        carrier.style.opacity = "1";
+                    }, 500);
+                }
+            }
+
+            const isCollidingItem = !(
+                carrierRect.right < itemRect.left ||
+                carrierRect.left > itemRect.right ||
+                carrierRect.bottom < itemRect.top ||
+                carrierRect.top > itemRect.bottom
+            );
+
+            if (isCollidingItem) {
+                if (hp < 100) {
+                    hp += 20;
+                    if (hp > 100) hp = 100;
+                    updateHpUI();
+                }
+
+                createSparks(
+                    itemRect.left - containerRect.left + 11,
+                    itemRect.top - containerRect.top + 11,
+                    "#ff9d00", 25
+                );
+
+                item.style.display = "none";
+                setTimeout(() => { item.style.display = "block"; }, 2000);
+            }
+        }, 10);
+
+        function updateHpUI() {
+            hpDisplay.innerText = hp + "%";
+            hpDisplay.style.color = hp <= 30 ? "#ff3366" : "#00f0ff";
+        }
+
+        function gameFailed() {
+            isGameOver = true;
+            stopAnimations();
+            messageText.innerHTML = "<span style='color:#ff3366;'>세포 내 분해 완료 (실패)</span><br><span style='font-size:12px; color:#94a3b8; margin-top:5px; display:block;'>클릭 / 스페이스바를 눌러 재시작</span>";
+            messageText.style.display = "block";
+        }
+
+        function gameSuccess() {
+            isGameOver = true;
+            isEnding = true;
+            stopAnimations();
+
+            targetReceptor.classList.add("appear");
+
+            setTimeout(() => {
+                carrier.style.left = "495px";
+                carrier.style.bottom = "55px";
+            }, 300);
+
+            setTimeout(() => {
+                createSparks(520, 110, "#ff9d00", 40);
+                createSparks(520, 110, "#00f0ff", 30);
+
+                messageText.innerHTML = "<span style='color:#00f0ff;'>표적 수용체 도달 및 결합 성공!</span>";
+                messageText.style.display = "block";
+            }, 1300);
+
+            setTimeout(() => {
+                messageText.style.display = "none";
+                targetReceptor.classList.remove("appear");
+                gameStarted = false;
+                isEnding = false;
+                startScreen.style.display = "flex";
+            }, 4300);
+        }
+
+        function stopAnimations() {
+            obstacle.classList.remove("object-move");
+            item.classList.remove("object-move");
+        }
+
+        function restartGame() {
+            hp = 100;
+            score = 0;
+            isGameOver = false;
+            isPaused = false;
+            isEnding = false;
+            pauseBtn.innerText = "⏸ PAUSE";
+            updateHpUI();
+            scoreDisplay.innerText = "0";
+            messageText.style.display = "none";
+            
+            carrier.style.left = "50px";
+            carrier.style.bottom = "0px";
+            targetReceptor.classList.remove("appear");
+
+            obstacle.classList.add("object-move");
+            item.classList.add("object-move");
+            obstacle.classList.remove("paused");
+            item.classList.remove("paused");
+            carrier.classList.remove("paused");
+        }
+    </script>
 </body>
 </html>
+
