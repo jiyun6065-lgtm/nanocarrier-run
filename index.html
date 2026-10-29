@@ -1,3 +1,10 @@
+목표 거리(300m)에 도달했을 때 표적 수용체(Receptor) 구조물이 우측에서 등장하고, 주인공 나노캐리어가 수용체에 결합하면서 네온 파티클 스파크 연출이 터지도록 연출을 강화한 전체 수정 코드입니다.
+연출 개선 포인트
+ * 표적 수용체 그래픽 및 애니메이션:
+   * 목표 거리 도달 시 Y자형 표적 수용체 그래픽이 우측에서 슬라이딩하여 등장합니다.
+   * 나노캐리어가 수용체 오목한 결합 부위 위치로 이동하여 도달(결합)하는 연출이 들어갑니다.
+ * 결합 스파크 연출:
+   * 이미지 무드에 맞춰 결합 순간 골드/시안 네온 빛 파티클 스파크가 연속으로 터지며 성공 메시지가 표시됩니다.
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -61,7 +68,6 @@
             backdrop-filter: blur(8px);
         }
 
-        /* 셀룰러 그리드 배경 */
         #game-container::before {
             content: '';
             position: absolute;
@@ -81,7 +87,6 @@
             100% { transform: translateX(-50%); }
         }
 
-        /* 일시정지 버튼 */
         #pause-btn {
             position: absolute;
             top: 12px;
@@ -105,7 +110,6 @@
             box-shadow: 0 0 20px var(--primary-cyan);
         }
 
-        /* 캐릭터 */
         #carrier {
             width: 50px;
             height: 50px;
@@ -114,7 +118,7 @@
             left: 50px;
             z-index: 10;
             filter: drop-shadow(0 0 8px var(--primary-cyan));
-            transition: filter 0.3s ease;
+            transition: left 1s cubic-bezier(0.25, 1, 0.5, 1), bottom 1s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .jump {
@@ -127,7 +131,6 @@
             100% { bottom: 0px; transform: scale(1, 1); }
         }
 
-        /* 장애물 & 아이템 */
         #obstacle {
             width: 28px;
             height: 38px;
@@ -152,6 +155,22 @@
             z-index: 9;
         }
 
+        /* 표적 수용체 (도달 시 등장) */
+        #target-receptor {
+            position: absolute;
+            bottom: 0px;
+            right: -120px;
+            width: 100px;
+            height: 120px;
+            z-index: 8;
+            transition: right 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+            filter: drop-shadow(0 0 15px var(--accent-gold));
+        }
+
+        #target-receptor.appear {
+            right: 80px;
+        }
+
         .object-move {
             animation: move-object 2s infinite linear;
         }
@@ -165,7 +184,6 @@
             animation-play-state: paused !important;
         }
 
-        /* HUD */
         .hud {
             width: 650px;
             max-width: 95vw;
@@ -194,7 +212,6 @@
             text-align: center;
         }
 
-        /* 모달 및 메시지 오버레이 */
         #message-text {
             display: none;
             position: absolute;
@@ -213,7 +230,6 @@
             backdrop-filter: blur(5px);
         }
 
-        /* 시작 화면 (캐릭터 선택) */
         #start-screen {
             position: absolute;
             top: 0;
@@ -298,7 +314,6 @@
             box-shadow: 0 0 25px rgba(255, 157, 0, 1);
         }
 
-        /* 이펙트 파티클 Canvas */
         #particle-canvas {
             position: absolute;
             top: 0;
@@ -315,13 +330,10 @@
     <h1>NanoCarrier Run</h1>
 
     <div id="game-container">
-        <!-- 스파크 파티클 효과 -->
         <canvas id="particle-canvas"></canvas>
-
-        <!-- 일시정지 버튼 -->
         <button id="pause-btn">⏸ PAUSE</button>
 
-        <!-- 캐릭터 선택 화면 -->
+        <!-- 시작 화면 -->
         <div id="start-screen">
             <h2>SELECT NANOCARRIER</h2>
             <div class="character-select">
@@ -345,7 +357,6 @@
                 </div>
                 <div class="char-card" onclick="selectCharacter(2)">
                     <svg viewBox="0 0 100 100">
-                        <!-- 항체 모티프 Y-Shape -->
                         <path d="M 30,20 L 50,45 L 70,20 M 50,45 L 50,80" fill="none" stroke="#ff9d00" stroke-width="8" stroke-linecap="round"/>
                         <circle cx="30" cy="20" r="8" fill="#00f0ff"/>
                         <circle cx="70" cy="20" r="8" fill="#00f0ff"/>
@@ -359,6 +370,18 @@
 
         <!-- 주인공 캐릭터 -->
         <div id="carrier"></div>
+
+        <!-- 표적 수용체 (목표 달성 시 슬라이딩 등장) -->
+        <div id="target-receptor">
+            <svg viewBox="0 0 100 120">
+                <!-- 수용체 홈 구조 -->
+                <path d="M 20,120 L 20,60 C 20,40 35,30 50,30 C 65,30 80,40 80,60 L 80,120" fill="none" stroke="#ff9d00" stroke-width="8" stroke-linecap="round"/>
+                <path d="M 50,30 L 50,0" fill="none" stroke="#00f0ff" stroke-width="6" stroke-dasharray="4,4"/>
+                <circle cx="50" cy="45" r="18" fill="rgba(255, 157, 0, 0.3)" stroke="#ff9d00" stroke-width="3"/>
+                <!-- 수용체 머리 부분 결합 포켓 -->
+                <path d="M 35,45 Q 50,60 65,45" fill="none" stroke="#00f0ff" stroke-width="4"/>
+            </svg>
+        </div>
 
         <!-- 장애물 및 아이템 -->
         <div id="obstacle"></div>
@@ -379,6 +402,7 @@
         const carrier = document.getElementById("carrier");
         const obstacle = document.getElementById("obstacle");
         const item = document.getElementById("item");
+        const targetReceptor = document.getElementById("target-receptor");
         const hpDisplay = document.getElementById("hp");
         const scoreDisplay = document.getElementById("score");
         const messageText = document.getElementById("message-text");
@@ -396,7 +420,6 @@
         let gameStarted = false;
         let selectedCharIndex = 0;
 
-        // 파티클 시스템 (이미지 무드의 빛 스파크 효과)
         let particles = [];
         function resizeCanvas() {
             canvas.width = canvas.offsetWidth;
@@ -409,11 +432,11 @@
                 this.x = x;
                 this.y = y;
                 this.color = color;
-                this.size = Math.random() * 3 + 1;
+                this.size = Math.random() * 3.5 + 1;
                 this.speedX = (Math.random() - 0.5) * 8;
                 this.speedY = (Math.random() - 0.5) * 8;
                 this.life = 1.0;
-                this.decay = Math.random() * 0.03 + 0.02;
+                this.decay = Math.random() * 0.03 + 0.015;
             }
             update() {
                 this.x += this.speedX;
@@ -452,7 +475,6 @@
         }
         animateParticles();
 
-        // 캐릭터 SVG 로드
         const charSVGs = [
             `<svg viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="42" fill="none" stroke="#00f0ff" stroke-width="6" stroke-dasharray="8,4"/>
@@ -526,7 +548,6 @@
 
             if (!carrier.classList.contains("jump")) {
                 carrier.classList.add("jump");
-                // 점프 시 푸른 빛 이펙트
                 const rect = carrier.getBoundingClientRect();
                 const containerRect = document.getElementById("game-container").getBoundingClientRect();
                 createSparks(rect.left - containerRect.left + 25, rect.bottom - containerRect.top, "#00f0ff", 8);
@@ -547,7 +568,6 @@
             if (e.target !== pauseBtn && !startScreen.contains(e.target)) jump();
         });
 
-        // 점수 루프
         setInterval(() => {
             if (gameStarted && !isGameOver && !isPaused) {
                 score += 1;
@@ -559,7 +579,6 @@
             }
         }, 100);
 
-        // 충돌 루프
         setInterval(() => {
             if (!gameStarted || isGameOver || isPaused) return;
 
@@ -568,7 +587,6 @@
             const itemRect = item.getBoundingClientRect();
             const containerRect = document.getElementById("game-container").getBoundingClientRect();
 
-            // 1. 장애물 충돌 (붉은 피격 이펙트)
             const isCollidingObstacle = !(
                 carrierRect.right < obstacleRect.left ||
                 carrierRect.left > obstacleRect.right ||
@@ -581,7 +599,6 @@
                 if (hp < 0) hp = 0;
                 updateHpUI();
 
-                // 피격 지점에 스파크 이펙트 생성 (이미지의 빛 효과 모티프)
                 createSparks(
                     obstacleRect.left - containerRect.left + 14,
                     obstacleRect.top - containerRect.top + 19,
@@ -600,7 +617,6 @@
                 }
             }
 
-            // 2. 아이템 획득 (황금빛 글로우 이펙트)
             const isCollidingItem = !(
                 carrierRect.right < itemRect.left ||
                 carrierRect.left > itemRect.right ||
@@ -641,13 +657,25 @@
         function gameSuccess() {
             isGameOver = true;
             stopAnimations();
-            
-            // 클리어 순간 항체 결합 축하 스파크
-            const containerRect = document.getElementById("game-container").getBoundingClientRect();
-            createSparks(containerRect.width / 2, containerRect.height / 2, "#ff9d00", 50);
 
-            messageText.innerHTML = "<span style='color:#00f0ff;'>표적 수용체 도달 성공! (클리어)</span><br><span style='font-size:12px; color:#94a3b8; margin-top:5px; display:block;'>클릭 / 스페이스바를 눌러 재시작</span>";
-            messageText.style.display = "block";
+            // 1. 수용체 등장
+            targetReceptor.classList.add("appear");
+
+            // 2. 나노캐리어가 수용체 오목한 위치로 이동하여 결합
+            setTimeout(() => {
+                carrier.style.left = "495px";
+                carrier.style.bottom = "55px";
+            }, 300);
+
+            // 3. 결합 순간 스파크 연출 및 성공 창 표시
+            setTimeout(() => {
+                const containerRect = document.getElementById("game-container").getBoundingClientRect();
+                createSparks(520, 110, "#ff9d00", 40);
+                createSparks(520, 110, "#00f0ff", 30);
+
+                messageText.innerHTML = "<span style='color:#00f0ff;'>표적 수용체 도달 및 결합 성공!</span><br><span style='font-size:12px; color:#94a3b8; margin-top:5px; display:block;'>클릭 / 스페이스바를 눌러 재시작</span>";
+                messageText.style.display = "block";
+            }, 1300);
         }
 
         function stopAnimations() {
@@ -664,6 +692,12 @@
             updateHpUI();
             scoreDisplay.innerText = "0";
             messageText.style.display = "none";
+            
+            // 캐리어 및 수용체 위치 리셋
+            carrier.style.left = "50px";
+            carrier.style.bottom = "0px";
+            targetReceptor.classList.remove("appear");
+
             obstacle.classList.add("object-move");
             item.classList.add("object-move");
             obstacle.classList.remove("paused");
@@ -673,3 +707,4 @@
     </script>
 </body>
 </html>
+
